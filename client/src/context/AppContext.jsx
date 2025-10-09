@@ -2,6 +2,10 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { dummyAddress, dummyProducts } from "../assets/assets";
 import toast from "react-hot-toast";
+import axios from "axios";
+
+axios.defaults.withCredentials = true ;
+axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
 
 export const AppContext = createContext();
 
@@ -17,11 +21,48 @@ export const AppContextProvider =({children})=>{
     const [cartItems,setCartItems]= useState({})
     const [searchQuery,setSearchQuery]= useState({})
 
-    //fetch all the product
+    //Fetch seller status 
+    const fetchSeller = async()=>{
+        try {
+            const {data} = await axios.get('/api/seller/is-auth');
+            if(data.success){
+                setIsSeller(true)
+            }else{
+                setIsSeller(false)
+            }
+        } catch (error) {
+            setIsSeller(false)
+        }
+    }
+
+    //Fetch User Auth Status , user Data and Cart Items
+    const fetchUser = async()=>{
+        try {
+            const {data} = await axios.get('api/user/is-auth');
+            if(data.success){
+                setUser(data.user)
+                setCartItems(data.user.cartItems)
+
+            }
+        } catch (error) {
+            setUser(null)
+        }
+    }
+
+    //fetch all the product                                          
 
 
     const fetchProducts = async()=>{
-        setProducts(dummyProducts)
+       try {
+         const {data} = await axios.get('/api/product/list')
+         if(data.success){
+            setProducts(data.products)
+         }else{
+            toast.error(data.message)
+         }
+       } catch (error) {
+            toast.error(error.message)
+       }
     }
 
     //Add product to cart 
@@ -83,11 +124,14 @@ const updateCartItem=(itemId, quantity)=>{
     }
 
     useEffect(()=>{
+        fetchUser()
+        fetchSeller()
         fetchProducts()
     },[])
 
     const value ={navigate, user, setUser, setIsSeller, isSeller,showUserLogin,setShowUserLogin,products ,
-         currency ,addToCart , updateCartItem, removeFromCart, cartItems,searchQuery,setSearchQuery,getCartAmount, getCartCount}
+         currency ,addToCart , updateCartItem, removeFromCart, cartItems,searchQuery,setSearchQuery,getCartAmount,
+          getCartCount, axios, fetchProducts}
 
     return <AppContext.Provider value={value}>
         {children}
